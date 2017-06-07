@@ -1,0 +1,32 @@
+machine:
+  services:
+  - docker
+  environment:
+    DOCKERFLAGS: --rm=false
+    TARGET_ARCH: arm
+    DOCKER_IMAGE: toktoknet/ghc-android:latest.$TARGET_ARCH
+    GHC_CACHE_DIR: $PWD/.cabal-cache.$TARGET_ARCH
+
+dependencies:
+  cache_directories:
+  - "~/docker"
+  override:
+#  - if [[ -e ~/docker/$TARGET_ARCH.tar ]]; then docker load -i ~/docker/$TARGET_ARCH.tar; fi
+  - docker pull $DOCKER_IMAGE
+#  - mkdir -p ~/docker; docker save $DOCKER_IMAGE > ~/docker/$TARGET_ARCH.tar
+  - docker run $DOCKERFLAGS -v $PWD:/work $DOCKER_IMAGE cp /root/dockrun /work/dockrun
+
+compile:
+  override:
+  - ls -l dockrun
+  - cat dockrun
+  - mkdir -p $PWD/.cabal-cache.$TARGET_ARCH
+  - >
+     docker run $DOCKERFLAGS \
+       -v $PWD:/work \
+       -e BUILDER_UID=`id -u` \
+       -e BUILDER_GID=`id -g` \
+       -e BUILDER_USER=`id -un` \
+       -e BUILDER_GROUP=`id -gn` \
+       $DOCKER_IMAGE \
+       android/build.sh
